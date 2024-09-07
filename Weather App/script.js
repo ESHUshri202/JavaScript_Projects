@@ -2,7 +2,7 @@ const searchInput = document.querySelector('.search-input');
 const currentWeather = document.querySelector('.current-weather');
 const API_KEY = '50463001541b407dbee124432240709'
 // const icon = document.querySelector('.weather-icon');
-
+const hourlyWeatherHTML = document.querySelector('.hourly-weather .weather-list');
 const WeatherCode = {
     clear: [1000],
     clouds: [1003, 1006, 1009],
@@ -15,6 +15,30 @@ const WeatherCode = {
 }
 
 
+const displayHourlyData = (hourlyData) => {
+    const currentHour = new Date().getMinutes(0,0,0);
+    const next24Hours = currentHour + 24 * 60 *60 *1000;
+
+    //Filter out the hourly data for the next 24 hours
+    const next24HoursData = hourlyData.filter(({time}) =>{
+        const forecastTime = new Date(time).getTime();
+        return forecastTime >= currentHour && forecastTime <= next24Hours;
+    });
+    hourlyWeatherHTML.innerHTML = next24HoursData.map(item =>{
+        const temperature = Math.floor(item.temp_c)
+        const time = item.time;
+        const Weathericon = Object.keys(WeatherCode).find(icon => WeatherCode[icon].includes(item.condition.code));
+
+        return `<li class="weather-item">
+                    <p class="time">${time}</p>
+                    <img src="images/${Weathericon}.svg" alt="" class="weather-icon">
+                    <p class="temperature">${temperature}<span>&deg;C</span></p>
+                </li>`;
+    }).join("");
+    // console.log(next24HoursData);
+}
+
+
 const getWeatherData = async (cityName) => {
     const API_URL = `http://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${cityName}`;
 
@@ -22,17 +46,30 @@ const getWeatherData = async (cityName) => {
         // Fetch weather data from the API and parse the respose as JSON
         const response = await fetch(API_URL);
         const data = await response.json();
+        
+        //Extract the data we need details
         const temperature = Math.floor(data.current.temp_c);
         const description = data.current.condition.text;
         const Weathericon = Object.keys(WeatherCode).find(icon => WeatherCode[icon].includes(data.current.condition.code)); 
+        
+        
         currentWeather.querySelector('.weather-icon').src = `images/${Weathericon}.svg`;
         currentWeather.querySelector('.temperature').innerHTML = `${temperature}<span>&degC</span>`;
         currentWeather.querySelector('.description').innerHTML = description;
+        
+        
         //Combine hourly data from today and tomorrow
-        // const combineHourlyData = [...data.forecast.forecastday[0].day, ...data.forecast.forecastday[1].day]
-        console.log(data.forecast.forecastday[1])
-        console.log(data)
-        console.log(combineHourlyData);
+        const combinehour1 = data.forecast.forecastday[0];
+        const combinehour2 = data.forecast.forecastday[1];
+        const combine = combinehour1.hour.concat(combinehour1.hour);
+        console.log(combine)
+        // const combineHourlyData = [...combinehour1.hour,...combinehour2.hour];
+        // console.log(data.forecast.forecastday[0])
+        // console.log(combinehour1.hour)
+        // console.log(combinehour2)
+        // console.log(data)
+        // console.log(combineHourlyData);
+        displayHourlyData(combine);
     } catch (error) {
         console.log(error);
     }
